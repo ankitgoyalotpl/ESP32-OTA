@@ -44,32 +44,29 @@ const storage = multer.diskStorage({
         cb(null, uploadPath);
     },
     filename: (req, file, cb) => {
-        cb(null, 'latest_ota.bin'); 
+        // ORIGINAL NAME SAVE KAREGA
+        cb(null, file.originalname); 
     }
 });
 const upload = multer({ storage: storage });
 
 app.post('/upload', upload.single('ota_file'), (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
-    
-    // Server ka live URL nikalna
-    const host = req.get('host');
-    const protocol = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-    const downloadUrl = protocol + '://' + host + '/uploads/latest_ota.bin';
 
-    console.log(`[SERVER] File received. Releasing to waiting ESP32 clients.`);
+    console.log(`[SERVER] File received: ${req.file.originalname}. Releasing to waiting ESP32 clients.`);
 
     // Release any waiting clients (For Test Script)
     if (waitingClients.length > 0) {
         waitingClients.forEach(client => {
-            client.download(req.file.path, 'latest_ota.bin', (err) => {
+            // ORIGINAL NAME SEND KAREGA
+            client.download(req.file.path, req.file.originalname, (err) => {
                 if (err) console.error("Error sending file to ESP32:", err);
             });
         });
         waitingClients = [];
     }
 
-    return res.json({ success: true, message: 'Upload Success! File sent to ESP32.' });
+    return res.json({ success: true, message: `Upload Success! ${req.file.originalname} sent to ESP32.` });
 });
 
 app.listen(PORT, () => {
