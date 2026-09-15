@@ -3,23 +3,12 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
-const mqtt = require('mqtt'); // 👈 MQTT package
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.static('public'));
-
-// 🚀 MQTT SETUP
-const mqttClient = mqtt.connect('mqtt://otplai.com:1883', {
-    username: 'oxmo',
-    password: '123456789'
-});
-
-mqttClient.on('connect', () => {
-    console.log('✅ Node.js Backend connected to MQTT');
-});
 
 // --- LONG-POLLING COMPATIBILITY FOR TEST SCRIPT ---
 let waitingClients = [];
@@ -68,19 +57,12 @@ app.post('/upload', upload.single('ota_file'), (req, res) => {
     const protocol = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
     const downloadUrl = protocol + '://' + host + '/uploads/latest_ota.bin';
 
-    console.log(`[SERVER] File received. Sending MQTT trigger with URL: ${downloadUrl}`);
-
-    // ESP32 ko MQTT par silent command bhejna! (For Main 600-line code)
-    const otaPayload = JSON.stringify({
-        cmd: "download_ota",
-        url: downloadUrl
-    });
-    mqttClient.publish("transformer/global/ota", otaPayload, { qos: 1 });
+    console.log(`[SERVER] File received. Releasing to waiting ESP32 clients.`);
 
     // Release any waiting clients (For Test Script)
     if (waitingClients.length > 0) {
         waitingClients.forEach(client => {
-            res.download(req.file.path, 'latest_ota.bin', (err) => {
+            client.download(req.file.path, 'latest_ota.bin', (err) => {
                 if (err) console.error("Error sending file to ESP32:", err);
             });
         });
