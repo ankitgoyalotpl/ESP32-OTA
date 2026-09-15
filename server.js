@@ -41,7 +41,7 @@ app.post('/upload', upload.single('ota_file'), (req, res) => {
     const protocol = req.protocol === 'https' || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
     const downloadUrl = protocol + '://' + host + '/uploads/latest_ota.bin';
 
-    console.log([SERVER] File received. Sending MQTT trigger with URL: );
+    console.log(`[SERVER] File received. Sending MQTT trigger with URL: ${downloadUrl}`);
 
     // ESP32 ko MQTT par silent command bhejna!
     const otaPayload = JSON.stringify({
@@ -57,5 +57,5 @@ app.post('/upload', upload.single('ota_file'), (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(🚀 ESP32 OTA Server running on port );
+    console.log(`🚀 ESP32 OTA Server running on port ${PORT}`);
 });
